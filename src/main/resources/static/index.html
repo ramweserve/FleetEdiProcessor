@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet EDI File Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            height: 25px;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            width: 0%;
+            transition: width 0.3s ease;
+            text-align: center;
+            color: white;
+            line-height: 25px;
+            font-size: 14px;
+        }
+        #statusMessage {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        .field-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .field-row label {
+            width: 100px;
+            font-size: 14px;
+        }
+        .field-row select {
+            flex-grow: 1;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Upload Fleet EDI File</h2>
+    <div class="form-group">
+        <input type="file" id="fileInput" accept=".csv,.txt">
+    </div>
+    <div class="form-group">
+        <label>Select order of fields in file</label>
+        <br>
+        <div id="fieldSelectors">
+            <!-- Dropdowns will be generated here -->
+        </div>
+        <div id="validationError" class="error" style="display:none; margin-top: 5px; padding: 5px; font-size: 13px;">
+            Each field must be unique.
+        </div>
+    </div>
+    <button onclick="uploadFile()">Upload and Process</button>
+    
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill">0%</div>
+        </div>
+        <div id="statusMessage">Starting...</div>
+    </div>
+
+    <div id="message"></div>
+</div>
+
+<script>
+    const fieldNames = [
+        "equipmentId", "isoCode", "category", "size", "type", 
+        "tare", "maxWeight", "status", "remarks", "year"
+    ];
+
+    function initFieldSelectors() {
+        const container = document.getElementById('fieldSelectors');
+        for (let i = 0; i < 10; i++) {
+            const row = document.createElement('div');
+            row.className = 'field-row';
+            
+            const label = document.createElement('label');
+            label.textContent = `Field ${i + 1}:`;
+            
+            const select = document.createElement('select');
+            select.className = 'field-select';
+            select.onchange = validateUniqueFields;
+            
+            fieldNames.forEach((name, index) => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                if (index === i) option.selected = true;
+                select.appendChild(option);
+            });
+            
+            row.appendChild(label);
+            row.appendChild(select);
+            container.appendChild(row);
+        }
+    }
+
+    function validateUniqueFields() {
+        const selects = document.querySelectorAll('.field-select');
+        const values = Array.from(selects).map(s => s.value);
+        const uniqueValues = new Set(values);
+        const errorDiv = document.getElementById('validationError');
+        
+        if (uniqueValues.size !== values.length) {
+            errorDiv.style.display = 'block';
+            return false;
+        } else {
+            errorDiv.style.display = 'none';
+            return true;
+        }
+    }
+
+    initFieldSelectors();
+
+    async function uploadFile() {
+        if (!validateUniqueFields()) {
+            showMessage('Please ensure all field names are unique.', 'error');
+            return;
+        }
+
+        const fileInput = document.getElementById('fileInput');
+        const messageDiv = document.getElementById('message');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const statusMessage = document.getElementById('statusMessage');
+        
+        if (fileInput.files.length === 0) {
+            showMessage('Please select a file first.', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        
+        const selects = document.querySelectorAll('.field-select');
+        const fieldOrder = Array.from(selects).map(s => s.value).join(',');
+        formData.append('fieldOrder', fieldOrder);
+
+        showMessage('Uploading file...', 'success');
+        progressContainer.style.display = 'block';
+        updateProgress(0, 'Initializing upload...');
+
+        try {
+            const response = await fetch('/api/batch/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.text();
+
+            if (response.ok) {
+                const processId = result;
+                pollStatus(processId);
+            } else {
+                showMessage('Error: ' + result, 'error');
+                progressContainer.style.display = 'none';
+            }
+        } catch (error) {
+            showMessage('Failed to upload: ' + error.message, 'error');
+            progressContainer.style.display = 'none';
+        }
+    }
+
+    function pollStatus(processId) {
+        const interval = setInterval(async () => {
+            try {
+                const response = await fetch(`/api/batch/status/${processId}`);
+                if (!response.ok) {
+                    clearInterval(interval);
+                    return;
+                }
+                const data = await response.json();
+                updateProgress(data.progress, data.message);
+
+                if (data.status === 'COMPLETED') {
+                    clearInterval(interval);
+                    showMessage('Generated file available in Downloads directory!!', 'success');
+                } else if (data.status === 'FAILED') {
+                    clearInterval(interval);
+                    showMessage('Process failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error polling status:', error);
+                clearInterval(interval);
+            }
+        }, 1000);
+    }
+
+    function updateProgress(percentage, message) {
+        const progressFill = document.getElementById('progressFill');
+        const statusMessage = document.getElementById('statusMessage');
+        progressFill.style.width = percentage + '%';
+        progressFill.textContent = percentage + '%';
+        statusMessage.textContent = message;
+    }
+
+    function showMessage(text, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.textContent = text;
+        messageDiv.className = type;
+        messageDiv.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
