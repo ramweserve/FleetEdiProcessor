@@ -40,7 +40,7 @@ public class CopyEquipmentService {
         log.info("Starting copy of ref_equipment table from {}.{} to {}.{}", sourceDb, sourceSchema, targetDb, targetSchema);
         batchStatusService.updateStatus(processId, "PROCESSING", 10, "Copying ref_equipment table...");
 
-        String targetTable = String.format("[%s].[%s].[ref_equipment]", targetDb, targetSchema);
+        String targetTable = String.format("[%s].[%s].[stage_ref_equipment]", targetDb, targetSchema);
         String sourceTable = String.format("[%s].[%s].[ref_equipment]", sourceDb, sourceSchema);
 
         try {
@@ -54,7 +54,7 @@ public class CopyEquipmentService {
                 
                 log.debug("Fetching column names for {}", targetTable);
                 String getColumnsSql = String.format(
-                    "SELECT COLUMN_NAME FROM [%s].INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = 'ref_equipment' ORDER BY ORDINAL_POSITION",
+                    "SELECT COLUMN_NAME FROM [%s].INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = 'stage_ref_equipment' ORDER BY ORDINAL_POSITION",
                     targetDb, targetSchema
                 );
                 List<String> columns = jdbcTemplate.queryForList(getColumnsSql, String.class);

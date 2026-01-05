@@ -33,16 +33,17 @@ public class FleetEdiComparisonService {
         this.batchStatusService = batchStatusService;
     }
 
-    public void compareAndGenerateFile(String processId) {
-        log.info("Starting comparison between fleet_edi_staging and ref_equipment.");
+    public void compareAndGenerateFile(String processId, String tableName) {
+        log.info("Starting comparison between {} and ref_equipment.", tableName);
         batchStatusService.updateStatus(processId, "PROCESSING", 85, "Comparing records and generating file...");
 
         String sql = String.format(
                 "SELECT fes.containerNbr, fes.typeIso, fes.cargoType, fes.length, fes.variant, fes.tarewt, fes.safewt, fes.code, fes.reserve, fes.year " +
-                "FROM [%s].[%s].[fleet_edi_staging] fes " +
-                "JOIN [%s].[%s].[ref_equipment] re ON fes.containerNbr COLLATE DATABASE_DEFAULT = re.id_full COLLATE DATABASE_DEFAULT " +
+                "FROM [%s].[%s].[%s] fes " +
+                "JOIN [%s].[%s].[stage_ref_equipment] re ON fes.containerNbr COLLATE DATABASE_DEFAULT = re.id_full COLLATE DATABASE_DEFAULT " +
                 "WHERE fes.tarewt <> re.tare_kg OR fes.safewt <> re.safe_kg",
-                targetDb, targetSchema, targetDb, targetSchema);
+                /*"WHERE fes.typeIso <> re.typeIso",*/
+                targetDb, targetSchema, tableName, targetDb, targetSchema);
 
         List<Map<String, Object>> deviatedRecords = jdbcTemplate.queryForList(sql);
 

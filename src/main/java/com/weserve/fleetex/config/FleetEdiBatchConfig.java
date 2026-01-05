@@ -49,12 +49,69 @@ public class FleetEdiBatchConfig {
     }
 
     @Bean
-    public JdbcBatchItemWriter<FleetEdi> writer(DataSource dataSource) {
+    @StepScope
+    public JdbcBatchItemWriter<FleetEdi> writer(
+            DataSource dataSource,
+            @Value("#{jobParameters['fieldOrder']}") String fieldOrder,
+            @Value("#{jobParameters['tableName']}") String tableName) {
+        
+        String[] fields;
+        if (fieldOrder != null && !fieldOrder.isEmpty()) {
+            fields = fieldOrder.split(",");
+        } else {
+            fields = new String[]{"equipmentId", "isoCode", "category", "size", "type", "tare", "maxWeight", "status", "remarks", "year"};
+        }
+
+        StringBuilder sql = new StringBuilder("INSERT INTO ");
+        sql.append(tableName != null ? tableName : "fleet_edi");
+        sql.append(" (");
+        
+        StringBuilder values = new StringBuilder("VALUES (");
+        
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            String column = getColumnName(field);
+            if (column != null) {
+                sql.append(column);
+                values.append(":").append(field);
+                if (i < fields.length - 1) {
+                    sql.append(", ");
+                    values.append(", ");
+                }
+            }
+        }
+        
+        // Remove trailing comma/space if any column was null
+        if (sql.toString().endsWith(", ")) {
+            sql.setLength(sql.length() - 2);
+            values.setLength(values.length() - 2);
+        }
+        
+        sql.append(") ");
+        values.append(")");
+        sql.append(values);
+
         return new JdbcBatchItemWriterBuilder<FleetEdi>()
                 .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
-                .sql("INSERT INTO fleet_edi_staging (containerNbr, typeIso, cargoType, length, variant, tarewt, safewt, code, reserve, year) VALUES (:equipmentId, :isoCode, :category, :size, :type, :tare, :maxWeight, :status, :remarks, :year)")
+                .sql(sql.toString())
                 .dataSource(dataSource)
                 .build();
+    }
+
+    private String getColumnName(String fieldName) {
+        switch (fieldName) {
+            case "equipmentId": return "containerNbr";
+            case "isoCode": return "typeIso";
+            case "category": return "cargoType";
+            case "size": return "length";
+            case "type": return "variant";
+            case "tare": return "tarewt";
+            case "maxWeight": return "safewt";
+            case "status": return "code";
+            case "remarks": return "reserve";
+            case "year": return "year";
+            default: return null;
+        }
     }
 
     @Bean

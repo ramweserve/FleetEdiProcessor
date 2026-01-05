@@ -51,7 +51,8 @@ public class BatchJobController {
     @PostMapping("/upload")
     public ResponseEntity<String> uploadAndLoadFleetEdi(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "fieldOrder", required = false) String fieldOrder) {
+            @RequestParam(value = "fieldOrder", required = false) String fieldOrder,
+            @RequestParam(value = "line", required = false) String line) {
         String processId = UUID.randomUUID().toString();
         try {
             if (file.isEmpty()) {
@@ -81,7 +82,7 @@ public class BatchJobController {
                     copyEquipmentService.copyRefEquipmentTable(processId);
 
                     // Trigger the batch job via service
-                    fleetEdiLoaderService.loadEdiFile(filePath.toAbsolutePath().toString(), processId, fieldOrder);
+                    fleetEdiLoaderService.loadEdiFile(filePath.toAbsolutePath().toString(), processId, fieldOrder, line);
 
                 } catch (Exception e) {
                     log.error("Error during asynchronous copy or batch processing", e);
@@ -94,6 +95,18 @@ public class BatchJobController {
             log.error("Error during file upload and batch job invocation", e);
             batchStatusService.updateStatus(processId, "FAILED", 0, "Upload error: " + e.getMessage());
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/lines")
+    public ResponseEntity<java.util.List<String>> getLines() {
+        try {
+            java.util.List<String> lines = fleetEdiLoaderService.getLines();
+            log.debug("Fetched {} lines", lines.size());
+            return ResponseEntity.ok(lines);
+        } catch (Exception e) {
+            log.error("Error fetching lines", e);
+            return ResponseEntity.status(500).build();
         }
     }
 

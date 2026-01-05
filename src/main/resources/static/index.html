@@ -95,7 +95,7 @@
             margin-bottom: 5px;
         }
         .field-row label {
-            width: 100px;
+            width: 20px;
             font-size: 14px;
         }
         .field-row select {
@@ -109,9 +109,15 @@
 <body>
 
 <div class="container">
-    <h2>Upload Fleet EDI File</h2>
+    <h2>Upload Fleet EDI</h2>
     <div class="form-group">
         <input type="file" id="fileInput" accept=".csv,.txt">
+    </div>
+    <div class="form-group">
+        <label for="lineSelect">Line:</label>
+        <select id="lineSelect" class="field-select">
+            <option value="">Loading lines...</option>
+        </select>
     </div>
     <div class="form-group">
         <label>Select order of fields in file</label>
@@ -136,9 +142,17 @@
 </div>
 
 <script>
-    const fieldNames = [
-        "equipmentId", "isoCode", "category", "size", "type", 
-        "tare", "maxWeight", "status", "remarks", "year"
+    const fieldMappings = [
+        { value: "equipmentId", label: "Container Nbr" },
+        { value: "isoCode", label: "Iso Code" },
+        { value: "category", label: "Category" },
+        { value: "size", label: "Size" },
+        { value: "type", label: "Type" },
+        { value: "tare", label: "Tare Weight" },
+        { value: "maxWeight", label: "Safe Weight" },
+        { value: "status", label: "Status" },
+        { value: "remarks", label: "Remarks" },
+        { value: "year", label: "Year" }
     ];
 
     function initFieldSelectors() {
@@ -147,17 +161,27 @@
             const row = document.createElement('div');
             row.className = 'field-row';
             
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.className = 'field-enabled';
+            checkbox.onchange = () => {
+                select.disabled = !checkbox.checked;
+                validateUniqueFields();
+            };
+            row.appendChild(checkbox);
+
             const label = document.createElement('label');
-            label.textContent = `Field ${i + 1}:`;
-            
+            label.textContent = `${i + 1}. `;
+
             const select = document.createElement('select');
             select.className = 'field-select';
             select.onchange = validateUniqueFields;
             
-            fieldNames.forEach((name, index) => {
+            fieldMappings.forEach((field, index) => {
                 const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
+                option.value = field.value;
+                option.textContent = field.label;
                 if (index === i) option.selected = true;
                 select.appendChild(option);
             });
@@ -168,9 +192,38 @@
         }
     }
 
+    async function loadLines() {
+        try {
+            const response = await fetch('/api/batch/lines');
+            if (response.ok) {
+                const lines = await response.json();
+                const lineSelect = document.getElementById('lineSelect');
+                lineSelect.innerHTML = '';
+                lines.forEach(line => {
+                    const option = document.createElement('option');
+                    option.value = line;
+                    option.textContent = line;
+                    lineSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading lines:', error);
+        }
+    }
+
+    initFieldSelectors();
+    loadLines();
+
     function validateUniqueFields() {
-        const selects = document.querySelectorAll('.field-select');
-        const values = Array.from(selects).map(s => s.value);
+        const rows = document.querySelectorAll('.field-row');
+        const values = [];
+        rows.forEach(row => {
+            const checkbox = row.querySelector('.field-enabled');
+            const select = row.querySelector('.field-select');
+            if (checkbox.checked) {
+                values.push(select.value);
+            }
+        });
         const uniqueValues = new Set(values);
         const errorDiv = document.getElementById('validationError');
         
@@ -183,15 +236,14 @@
         }
     }
 
-    initFieldSelectors();
-
     async function uploadFile() {
         if (!validateUniqueFields()) {
-            showMessage('Please ensure all field names are unique.', 'error');
+            showMessage('Please ensure all enabled field names are unique.', 'error');
             return;
         }
 
         const fileInput = document.getElementById('fileInput');
+        const lineSelect = document.getElementById('lineSelect');
         const messageDiv = document.getElementById('message');
         const progressContainer = document.getElementById('progressContainer');
         const progressFill = document.getElementById('progressFill');
@@ -204,9 +256,13 @@
 
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
+        formData.append('line', lineSelect.value);
         
-        const selects = document.querySelectorAll('.field-select');
-        const fieldOrder = Array.from(selects).map(s => s.value).join(',');
+        const rows = document.querySelectorAll('.field-row');
+        const fieldOrder = Array.from(rows)
+            .filter(row => row.querySelector('.field-enabled').checked)
+            .map(row => row.querySelector('.field-select').value)
+            .join(',');
         formData.append('fieldOrder', fieldOrder);
 
         showMessage('Uploading file...', 'success');
