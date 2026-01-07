@@ -41,8 +41,9 @@ public class FleetEdiComparisonService {
                 "SELECT fes.containerNbr, fes.typeIso, fes.cargoType, fes.length, fes.variant, fes.tarewt, fes.safewt, fes.code, fes.reserve, fes.year " +
                 "FROM [%s].[%s].[%s] fes " +
                 "JOIN [%s].[%s].[stage_ref_equipment] re ON fes.containerNbr COLLATE DATABASE_DEFAULT = re.id_full COLLATE DATABASE_DEFAULT " +
-                "WHERE fes.tarewt <> re.tare_kg OR fes.safewt <> re.safe_kg",
-                /*"WHERE fes.typeIso <> re.typeIso",*/
+                "WHERE " +
+                /*"fes.tarewt <> re.tare_kg OR fes.safewt <> re.safe_kg OR " +*/
+                "fes.typeIso <> re.iso_id",
                 targetDb, targetSchema, tableName, targetDb, targetSchema);
 
         List<Map<String, Object>> deviatedRecords = jdbcTemplate.queryForList(sql);

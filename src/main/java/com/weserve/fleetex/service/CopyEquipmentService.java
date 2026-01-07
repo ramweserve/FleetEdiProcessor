@@ -51,7 +51,13 @@ public class CopyEquipmentService {
             if (exists != null && exists == 1) {
                 log.debug("Target table {} exists. Deleting records.", targetTable);
                 jdbcTemplate.execute(String.format("TRUNCATE TABLE %s", targetTable));
-                
+
+                // Add iso_id column if it doesn't exist
+                String addColumnSql = String.format(
+                        "IF NOT EXISTS (SELECT 1 FROM [%s].INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'stage_ref_equipment' AND COLUMN_NAME = 'iso_id') " +
+                                "ALTER TABLE %s ADD iso_id NVARCHAR(50)", targetDb, targetTable);
+                jdbcTemplate.execute(addColumnSql);
+
                 log.debug("Fetching column names for {}", targetTable);
                 String getColumnsSql = String.format(
                     "SELECT COLUMN_NAME FROM [%s].INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = 'stage_ref_equipment' ORDER BY ORDINAL_POSITION",
@@ -59,7 +65,7 @@ public class CopyEquipmentService {
                 );
                 List<String> columns = jdbcTemplate.queryForList(getColumnsSql, String.class);
                 String columnList = columns.stream().map(c -> "[" + c + "]").collect(Collectors.joining(", "));
-                
+
                 log.debug("Checking for identity column on {}", targetTable);
                 String checkIdentitySql = String.format(
                     "SELECT 1 FROM [%s].sys.columns WHERE object_id = OBJECT_ID('%s') AND is_identity = 1",
@@ -72,19 +78,34 @@ public class CopyEquipmentService {
                 if (hasIdentity) {
                     jdbcTemplate.execute(String.format("SET IDENTITY_INSERT %s ON", targetTable));
                 }
-                
-                String insertSql = String.format("INSERT INTO %s (%s) SELECT %s FROM %s", targetTable, columnList, columnList, sourceTable);
+
+                // Re-build column list for source to match target table structure including iso_id
+                String targetColumnList = columnList;
+                String sourceColumnList = columns.stream().map(c -> {
+                    if ("iso_id".equalsIgnoreCase(c)) {
+                        return "ret.id";
+                    } else {
+                        return "re.[" + c + "]";
+                    }
+                }).collect(Collectors.joining(", "));
+
+                String insertSql = String.format("INSERT INTO %s (%s) SELECT %s FROM %s re LEFT JOIN [%s].[%s].[ref_equip_type] ret ON re.eqtyp_gkey = ret.gkey",
+                        targetTable, targetColumnList, sourceColumnList, sourceTable, sourceDb, sourceSchema);
                 jdbcTemplate.execute(insertSql);
-                
+
                 if (hasIdentity) {
                     jdbcTemplate.execute(String.format("SET IDENTITY_INSERT %s OFF", targetTable));
                 }
             } else {
                 log.debug("Target table {} does not exist. Creating and copying records.", targetTable);
-                jdbcTemplate.execute(String.format("SELECT * INTO %s FROM %s", targetTable, sourceTable));
+                String createTableSql = String.format(
+                        "SELECT re.*, ret.id AS iso_id INTO %s FROM %s re LEFT JOIN [%s].[%s].[ref_equip_type] ret ON re.eqtyp_gkey = ret.gkey",
+                        targetTable, sourceTable, sourceDb, sourceSchema);
+                jdbcTemplate.execute(createTableSql);
             }
             log.info("Successfully copied ref_equipment table.");
             batchStatusService.updateStatus(processId, "PROCESSING", 30, "Ref_equipment table copied successfully.");
+
         } catch (Exception e) {
             log.error("Error copying ref_equipment table", e);
             batchStatusService.updateStatus(processId, "FAILED", 0, "Failed to copy ref_equipment: " + e.getMessage());
