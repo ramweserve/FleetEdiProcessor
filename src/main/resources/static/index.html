@@ -3,333 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fleet EDI File Upload</title>
+    <title>Fleet EDI | Processor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 50px;
-            background-color: #f4f4f9;
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
         }
-        .container {
-            max-width: 500px;
-            margin: auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
         }
-        h2 {
-            text-align: center;
-            color: #333;
+        .step-number {
+            @apply flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold mr-3;
         }
-        .form-group {
-            margin-bottom: 20px;
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
         }
-        input[type="file"] {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
         }
-        button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
         }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #message {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .progress-container {
-            margin-top: 20px;
-            display: none;
-        }
-        .progress-bar {
-            width: 100%;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            overflow: hidden;
-            height: 25px;
-        }
-        .progress-fill {
-            height: 100%;
-            background-color: #28a745;
-            width: 0%;
-            transition: width 0.3s ease;
-            text-align: center;
-            color: white;
-            line-height: 25px;
-            font-size: 14px;
-        }
-        #statusMessage {
-            margin-top: 5px;
-            font-size: 14px;
-            color: #666;
-            text-align: center;
-        }
-        .field-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        .field-row label {
-            width: 20px;
-            font-size: 14px;
-        }
-        .field-row select {
-            flex-grow: 1;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </head>
-<body>
-
-<div class="container">
-    <h2>Upload Fleet EDI</h2>
-    <div class="form-group">
-        <input type="file" id="fileInput" accept=".csv,.txt">
-    </div>
-    <div class="form-group">
-        <label for="lineSelect">Line:</label>
-        <select id="lineSelect" class="field-select">
-            <option value="">Loading lines...</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Select order of fields in file</label>
-        <br>
-        <div id="fieldSelectors">
-            <!-- Dropdowns will be generated here -->
+<body class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4 text-white">
+                <i class="fas fa-ship fa-2x"></i>
+            </div>
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">Smart Fleet EDI Processor</h1>
         </div>
-        <div id="validationError" class="error" style="display:none; margin-top: 5px; padding: 5px; font-size: 13px;">
-            Each field must be unique.
+
+        <div class="glass-card rounded-3xl shadow-2xl overflow-hidden">
+            <div class="p-8">
+                <!-- Section 1: Line Selection & File Upload -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            <i class="fas fa-route mr-2 text-blue-500"></i>Line Operator
+                        </label>
+                        <select id="lineSelect" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none">
+                            <option value="">Loading lines...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            <i class="fas fa-file-csv mr-2 text-blue-500"></i>EDI Data Source
+                        </label>
+                        <div class="relative">
+                            <input type="file" id="fileInput" accept=".csv,.txt" class="hidden">
+                            <button onclick="document.getElementById('fileInput').click()" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 border-dashed rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all text-slate-500 text-sm flex items-center justify-between">
+                                <span id="fileNameDisplay">Select CSV/TXT file</span>
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Field Mapping -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <label class="text-sm font-semibold text-slate-700">
+                            <i class="fas fa-columns mr-2 text-blue-500"></i>Field Mapping Configuration
+                        </label>
+                        <span class="text-xs text-slate-400">Order from left to right in file</span>
+                    </div>
+                    
+                    <div id="fieldSelectors" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+                        <!-- Dropdowns will be generated here -->
+                    </div>
+
+                    <div id="validationError" class="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs hidden flex items-center">
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                        Each mapping must be unique to ensure data integrity.
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button onclick="uploadFile()" id="processBtn" class="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-bold rounded-2xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg shadow-blue-200 transition-all active:scale-[0.98]">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="fas fa-play text-blue-400 group-hover:text-blue-300 transition-colors"></i>
+                    </span>
+                    START PROCESSING
+                </button>
+
+                <!-- Status & Progress -->
+                <div id="statusContainer" class="mt-8 hidden space-y-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <span id="statusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 uppercase tracking-wider italic">Processing</span>
+                        <span id="progressText" class="text-sm font-bold text-slate-700">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
+                        <div id="progressFill" class="bg-blue-600 h-full w-0 transition-all duration-500 ease-out rounded-full shadow-lg"></div>
+                    </div>
+                    <p id="statusMessage" class="text-center text-sm text-slate-500 animate-pulse">Initializing engine...</p>
+                </div>
+
+                <!-- Global Message -->
+                <div id="message" class="mt-6 p-4 rounded-2xl text-sm font-medium hidden text-center transition-all duration-300"></div>
+            </div>
+            
+            <!-- Footer Branding -->
+            <div class="bg-slate-50 px-8 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+                <span>WESERVE TECHNOLOGIES</span>
+                <span class="flex items-center"><i class="fas fa-shield-alt mr-1"></i> SECURE PROCESSING</span>
+            </div>
         </div>
     </div>
-    <button onclick="uploadFile()">Upload and Process</button>
-    
-    <div class="progress-container" id="progressContainer">
-        <div class="progress-bar">
-            <div id="progressFill" class="progress-fill">0%</div>
-        </div>
-        <div id="statusMessage">Starting...</div>
-    </div>
 
-    <div id="message"></div>
-</div>
+    <script>
+        const fieldMappings = [
+            { value: "equipmentId", label: "Container Nbr" },
+            { value: "isoCode", label: "Iso Code" },
+            { value: "category", label: "Category" },
+            { value: "size", label: "Size" },
+            { value: "type", label: "Type" },
+            { value: "tare", label: "Tare Weight" },
+            { value: "maxWeight", label: "Safe Weight" },
+            { value: "status", label: "Status" },
+            { value: "remarks", label: "Remarks" },
+            { value: "year", label: "Year" }
+        ];
 
-<script>
-    const fieldMappings = [
-        { value: "equipmentId", label: "Container Nbr" },
-        { value: "isoCode", label: "Iso Code" },
-        { value: "category", label: "Category" },
-        { value: "size", label: "Size" },
-        { value: "type", label: "Type" },
-        { value: "tare", label: "Tare Weight" },
-        { value: "maxWeight", label: "Safe Weight" },
-        { value: "status", label: "Status" },
-        { value: "remarks", label: "Remarks" },
-        { value: "year", label: "Year" }
-    ];
-
-    function initFieldSelectors() {
-        const container = document.getElementById('fieldSelectors');
-        for (let i = 0; i < 10; i++) {
-            const row = document.createElement('div');
-            row.className = 'field-row';
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = true;
-            checkbox.className = 'field-enabled';
-            checkbox.onchange = () => {
-                select.disabled = !checkbox.checked;
-                validateUniqueFields();
-            };
-            row.appendChild(checkbox);
-
-            const label = document.createElement('label');
-            label.textContent = `${i + 1}. `;
-
-            const select = document.createElement('select');
-            select.className = 'field-select';
-            select.onchange = validateUniqueFields;
-            
-            fieldMappings.forEach((field, index) => {
-                const option = document.createElement('option');
-                option.value = field.value;
-                option.textContent = field.label;
-                if (index === i) option.selected = true;
-                select.appendChild(option);
-            });
-            
-            row.appendChild(label);
-            row.appendChild(select);
-            container.appendChild(row);
-        }
-    }
-
-    async function loadLines() {
-        try {
-            const response = await fetch('/api/batch/lines');
-            if (response.ok) {
-                const lines = await response.json();
-                const lineSelect = document.getElementById('lineSelect');
-                lineSelect.innerHTML = '';
-                lines.forEach(line => {
-                    const option = document.createElement('option');
-                    option.value = line;
-                    option.textContent = line;
-                    lineSelect.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error('Error loading lines:', error);
-        }
-    }
-
-    initFieldSelectors();
-    loadLines();
-
-    function validateUniqueFields() {
-        const rows = document.querySelectorAll('.field-row');
-        const values = [];
-        rows.forEach(row => {
-            const checkbox = row.querySelector('.field-enabled');
-            const select = row.querySelector('.field-select');
-            if (checkbox.checked) {
-                values.push(select.value);
-            }
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : 'Select CSV/TXT file';
+            document.getElementById('fileNameDisplay').textContent = fileName;
         });
-        const uniqueValues = new Set(values);
-        const errorDiv = document.getElementById('validationError');
-        
-        if (uniqueValues.size !== values.length) {
-            errorDiv.style.display = 'block';
-            return false;
-        } else {
-            errorDiv.style.display = 'none';
-            return true;
-        }
-    }
 
-    async function uploadFile() {
-        if (!validateUniqueFields()) {
-            showMessage('Please ensure all enabled field names are unique.', 'error');
-            return;
-        }
+        function initFieldSelectors() {
+            const container = document.getElementById('fieldSelectors');
+            for (let i = 0; i < 10; i++) {
+                const row = document.createElement('div');
+                row.className = 'flex items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm hover:border-blue-200 transition-colors';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = true;
+                checkbox.className = 'w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 mr-3 field-enabled';
+                checkbox.onchange = () => {
+                    select.disabled = !checkbox.checked;
+                    select.parentElement.classList.toggle('opacity-50', !checkbox.checked);
+                    validateUniqueFields();
+                };
 
-        const fileInput = document.getElementById('fileInput');
-        const lineSelect = document.getElementById('lineSelect');
-        const messageDiv = document.getElementById('message');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressFill = document.getElementById('progressFill');
-        const statusMessage = document.getElementById('statusMessage');
-        
-        if (fileInput.files.length === 0) {
-            showMessage('Please select a file first.', 'error');
-            return;
-        }
+                const label = document.createElement('span');
+                label.className = 'text-xs font-bold text-slate-400 w-5 mr-1';
+                label.textContent = `${i + 1}.`;
 
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-        formData.append('line', lineSelect.value);
-        
-        const rows = document.querySelectorAll('.field-row');
-        const fieldOrder = Array.from(rows)
-            .filter(row => row.querySelector('.field-enabled').checked)
-            .map(row => row.querySelector('.field-select').value)
-            .join(',');
-        formData.append('fieldOrder', fieldOrder);
-
-        showMessage('Uploading file...', 'success');
-        progressContainer.style.display = 'block';
-        updateProgress(0, 'Initializing upload...');
-
-        try {
-            const response = await fetch('/api/batch/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.text();
-
-            if (response.ok) {
-                const processId = result;
-                pollStatus(processId);
-            } else {
-                showMessage('Error: ' + result, 'error');
-                progressContainer.style.display = 'none';
+                const select = document.createElement('select');
+                select.className = 'flex-grow bg-transparent text-sm font-medium text-slate-700 outline-none field-select';
+                select.onchange = validateUniqueFields;
+                
+                fieldMappings.forEach((field, index) => {
+                    const option = document.createElement('option');
+                    option.value = field.value;
+                    option.textContent = field.label;
+                    if (index === i) option.selected = true;
+                    select.appendChild(option);
+                });
+                
+                row.appendChild(checkbox);
+                row.appendChild(label);
+                row.appendChild(select);
+                container.appendChild(row);
             }
-        } catch (error) {
-            showMessage('Failed to upload: ' + error.message, 'error');
-            progressContainer.style.display = 'none';
         }
-    }
 
-    function pollStatus(processId) {
-        const interval = setInterval(async () => {
+        async function loadLines() {
             try {
-                const response = await fetch(`/api/batch/status/${processId}`);
-                if (!response.ok) {
-                    clearInterval(interval);
-                    return;
-                }
-                const data = await response.json();
-                updateProgress(data.progress, data.message);
-
-                if (data.status === 'COMPLETED') {
-                    clearInterval(interval);
-                    showMessage('Generated file available in Downloads directory!!', 'success');
-                } else if (data.status === 'FAILED') {
-                    clearInterval(interval);
-                    showMessage('Process failed: ' + data.message, 'error');
+                const response = await fetch('/api/batch/lines');
+                if (response.ok) {
+                    const lines = await response.json();
+                    const lineSelect = document.getElementById('lineSelect');
+                    lineSelect.innerHTML = '<option value="">Select a Line</option>';
+                    lines.forEach(line => {
+                        const option = document.createElement('option');
+                        option.value = line;
+                        option.textContent = line;
+                        lineSelect.appendChild(option);
+                    });
                 }
             } catch (error) {
-                console.error('Error polling status:', error);
-                clearInterval(interval);
+                console.error('Error loading lines:', error);
             }
-        }, 1000);
-    }
+        }
 
-    function updateProgress(percentage, message) {
-        const progressFill = document.getElementById('progressFill');
-        const statusMessage = document.getElementById('statusMessage');
-        progressFill.style.width = percentage + '%';
-        progressFill.textContent = percentage + '%';
-        statusMessage.textContent = message;
-    }
+        initFieldSelectors();
+        loadLines();
 
-    function showMessage(text, type) {
-        const messageDiv = document.getElementById('message');
-        messageDiv.textContent = text;
-        messageDiv.className = type;
-        messageDiv.style.display = 'block';
-    }
-</script>
+        function validateUniqueFields() {
+            const selects = document.querySelectorAll('.field-select');
+            const checkboxes = document.querySelectorAll('.field-enabled');
+            const values = [];
+            
+            selects.forEach((select, idx) => {
+                if (checkboxes[idx].checked) {
+                    values.push(select.value);
+                }
+            });
 
+            const uniqueValues = new Set(values);
+            const errorDiv = document.getElementById('validationError');
+            
+            if (uniqueValues.size !== values.length) {
+                errorDiv.classList.remove('hidden');
+                return false;
+            } else {
+                errorDiv.classList.add('hidden');
+                return true;
+            }
+        }
+
+        async function uploadFile() {
+            if (!validateUniqueFields()) {
+                showMessage('Unique fields required for processing.', 'error');
+                return;
+            }
+
+            const fileInput = document.getElementById('fileInput');
+            const lineSelect = document.getElementById('lineSelect');
+            
+            if (fileInput.files.length === 0) {
+                showMessage('Please select an EDI file.', 'error');
+                return;
+            }
+            if (!lineSelect.value) {
+                showMessage('Please select a service line.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('line', lineSelect.value);
+            
+            const selects = document.querySelectorAll('.field-select');
+            const checkboxes = document.querySelectorAll('.field-enabled');
+            const fieldOrder = Array.from(selects)
+                .filter((_, idx) => checkboxes[idx].checked)
+                .map(select => select.value)
+                .join(',');
+            formData.append('fieldOrder', fieldOrder);
+
+            setProcessingState(true);
+            showMessage('Establishing secure connection...', 'success');
+            document.getElementById('statusContainer').classList.remove('hidden');
+            updateProgress(0, 'Uploading file payload...');
+
+            try {
+                const response = await fetch('/api/batch/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.text();
+
+                if (response.ok) {
+                    pollStatus(result);
+                } else {
+                    showMessage('Engine error: ' + result, 'error');
+                    setProcessingState(false);
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+                setProcessingState(false);
+            }
+        }
+
+        function setProcessingState(isProcessing) {
+            const btn = document.getElementById('processBtn');
+            const btnIcon = btn.querySelector('i');
+            if (isProcessing) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btnIcon.className = 'fas fa-circle-notch fa-spin text-white';
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnIcon.className = 'fas fa-play text-blue-400 group-hover:text-blue-300';
+            }
+        }
+
+        function pollStatus(processId) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/batch/status/${processId}`);
+                    if (!response.ok) {
+                        clearInterval(interval);
+                        setProcessingState(false);
+                        return;
+                    }
+                    const data = await response.json();
+                    updateProgress(data.progress, data.message);
+
+                    const badge = document.getElementById('statusBadge');
+                    if (data.status === 'COMPLETED') {
+                        clearInterval(interval);
+                        badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 uppercase tracking-wider italic';
+                        badge.textContent = 'Success';
+                        showMessage('Processing Complete! File saved to Downloads.', 'success');
+                        setProcessingState(false);
+                    } else if (data.status === 'FAILED') {
+                        clearInterval(interval);
+                        badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 uppercase tracking-wider italic';
+                        badge.textContent = 'Failed';
+                        showMessage('Critical failure: ' + data.message, 'error');
+                        setProcessingState(false);
+                    }
+                } catch (error) {
+                    console.error('Status check failed:', error);
+                    clearInterval(interval);
+                    setProcessingState(false);
+                }
+            }, 1000);
+        }
+
+        function updateProgress(percentage, message) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const statusMsg = document.getElementById('statusMessage');
+            progressFill.style.width = percentage + '%';
+            progressText.textContent = percentage + '%';
+            statusMsg.textContent = message;
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-green-50', 'text-green-700', 'border', 'border-red-100', 'border-green-100');
+            
+            if (type === 'error') {
+                messageDiv.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-100');
+            } else {
+                messageDiv.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-100');
+            }
+            messageDiv.classList.remove('hidden');
+        }
+    </script>
 </body>
 </html>
